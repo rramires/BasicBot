@@ -1,0 +1,40 @@
+1 - Inicir projeto
+npm init -y
+
+
+2 - Instalar as dependências - Axios cliente http, Dotenv carregar as configurações
+npm install axios dotenv 
+
+
+3 - Criar um arquivo .env
+touch .env
+
+
+4 - Adicionar no .env as constantes
+API_URL=https://api.binance.com/api
+API_KEY=
+SECRET_KEY=
+CRAWLER_INTERVAL=2000
+PROFITABILITY=1.05
+
+
+5 - Verifique se o .env e node_modules estão no 
+.gitignore
+
+
+6 - Crie o arquivo da app, index.js e adicione
+setInterval(() => {
+    console.log('Chamou a API !')
+}, process.env.CRAWLER_INTERVAL)
+
+
+7 - Configure o dotenv no package.json, em scripts adicione
+"start": "node -r dotenv/config index",
+
+
+8 - Teste
+npm start
+
+Deve imprimir no console 
+"Chamou a API !"
+
