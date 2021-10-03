@@ -12,6 +12,7 @@ touch .env
 
 4 - Adicionar no .env as constantes
 API_URL=https://api.binance.com/api
+API_VERSION = v3
 API_KEY=
 SECRET_KEY=
 CRAWLER_INTERVAL=2000
@@ -41,10 +42,13 @@ npm start
 Deve imprimir no console 
 "Chamou a API !"
 
+------------------------------
+
+
 9 - Crie um aquivo api.js que servirá de wrapper
 // imports
 const axios = require('axios')
-
+const querystring = require('querystring')
 
 /**
  * Metodo interno que monta e faz as chamadas
@@ -57,11 +61,16 @@ const axios = require('axios')
 const publicCall = async (path, data, method = 'GET') => {
     try{
         // monta a query
-        const query = data ? `?${querystring.stringify(data)}` : ''
+        const query = data ? `?${querystring.encode(data)}` : ''
+
+        // monta a url
+        const url = `${process.env.API_URL}/${process.env.API_VERSION}/${path}${query}`
+        //console.log('url: ', url)
+
         // faz a chamada
         const result = await axios({
             method,
-            url: `${process.env.API_URL}/${process.env.API_VERSION}/${path}${query}`
+            url
         })
         return result.data
     }
@@ -76,7 +85,7 @@ const publicCall = async (path, data, method = 'GET') => {
  * 
  * @returns json
  */
-const time = () => {
+const time = async () => {
     return publicCall('time')
 }
 
@@ -95,7 +104,88 @@ setInterval(async () => {
     console.log('Chamou a API :',  await api.time())
 }, process.env.CRAWLER_INTERVAL)
 
+
 11 - Teste
 npm start
 // Deve imprimir o timestamp do servidor da Binance, ex:
 Chamou a API : { serverTime: 1633299402667 }
+
+------------------------------
+
+
+12 - Teste no browser o Depht
+https://api.binance.com/api/v3/depth?symbol=BTCBRL&limit=5
+
+12 - Criando o monitoramento do mercado. Em api.js adicione depois do metodo time
+/**
+ * Retorna infos do book de um par de moedas (symbol)
+ * 
+ * @param symbol Par de moedas, ex BTCUSDT, LTCBTC, etc
+ * @param limit Quantidade de ordens no book - Minimo 5
+ * @returns 
+ */
+const depth = async (symbol = 'BTCUSDT', limit = 5) => {
+    return publicCall('depth', {
+        symbol, 
+        limit
+    })
+}
+
+// adicione no exports
+module.exports = {
+    time,
+    depth
+}
+
+
+13 - Modifique a app, adicionando em index.js
+setInterval(async () => {
+    // faz a chamada
+    // console.log('Chamou a API :',  await api.time())
+    console.log('Depth :',  await api.depth())
+}, process.env.CRAWLER_INTERVAL)
+
+
+14 - Teste
+npm start
+// Deve imprimir 5 linhas do book, ex:
+Depth : {
+  lastUpdateId: 14067475097,
+  bids: [
+    [ '47969.90000000', '0.05381000' ],
+    [ '47966.92000000', '0.00022000' ],
+    [ '47966.53000000', '0.29880000' ],
+    [ '47966.24000000', '0.80145000' ],
+    [ '47965.55000000', '0.04457000' ]
+  ],
+  asks: [
+    [ '47969.91000000', '1.02805000' ],
+    [ '47969.95000000', '0.00237000' ],
+    [ '47971.23000000', '0.67001000' ],
+    [ '47971.24000000', '0.46064000' ],
+    [ '47972.21000000', '0.02200000' ]
+  ]
+}
+
+
+15 - Percebendo que é uma matriz, vamos filtrar
+setInterval(async () => {
+    // faz a chamada
+    // console.log('Chamou a API :',  await api.time())
+    // console.log('Depth :',  await api.depth())
+    const result = await api.depth()
+    console.log('Highest Buy: ',  result.bids[0][0])
+    console.log('Highest Sell: ',  result.asks[0][0])
+}, process.env.CRAWLER_INTERVAL)
+
+
+16 - Teste novamente
+npm start
+// Deve imprimir 5 linhas do book, ex:
+Highest Buy:  47955.62000000
+Highest Sell:  47955.63000000
+
+------------------------------
+
+
+17 - 

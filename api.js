@@ -1,6 +1,6 @@
 // imports
 const axios = require('axios')
-
+const querystring = require('querystring')
 
 /**
  * Metodo interno que monta e faz as chamadas
@@ -13,11 +13,16 @@ const axios = require('axios')
 const publicCall = async (path, data, method = 'GET') => {
     try{
         // monta a query
-        const query = data ? `?${querystring.stringify(data)}` : ''
+        const query = data ? `?${querystring.encode(data)}` : ''
+
+        // monta a url
+        const url = `${process.env.API_URL}/${process.env.API_VERSION}/${path}${query}`
+        //console.log('url: ', url)
+
         // faz a chamada
         const result = await axios({
             method,
-            url: `${process.env.API_URL}/${process.env.API_VERSION}/${path}${query}`
+            url
         })
         return result.data
     }
@@ -32,11 +37,28 @@ const publicCall = async (path, data, method = 'GET') => {
  * 
  * @returns json
  */
-const time = () => {
+const time = async () => {
     return publicCall('time')
 }
 
+
+/**
+ * Retorna infos do book de um par de moedas (symbol)
+ * 
+ * @param symbol Par de moedas, ex BTCUSDT, LTCBTC, etc
+ * @param limit Quantidade de ordens no book - Minimo 5
+ * @returns 
+ */
+const depth = async (symbol = 'BTCUSDT', limit = 5) => {
+    return publicCall('depth', {
+        symbol, 
+        limit
+    })
+}
+
+
 // exports
 module.exports = {
-    time
+    time,
+    depth
 }
