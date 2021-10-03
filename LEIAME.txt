@@ -17,6 +17,9 @@ SECRET_KEY=
 CRAWLER_INTERVAL=2000
 PROFITABILITY=1.05
 
+// Para ver os limites, teste no browser
+https://api.binance.com/api/v3/exchangeInfo
+
 
 5 - Verifique se o .env e node_modules estão no 
 .gitignore
@@ -38,3 +41,61 @@ npm start
 Deve imprimir no console 
 "Chamou a API !"
 
+9 - Crie um aquivo api.js que servirá de wrapper
+// imports
+const axios = require('axios')
+
+
+/**
+ * Metodo interno que monta e faz as chamadas
+ * 
+ * @param path - Consulta desejada na API
+ * @param data - Dados que serão convertidos no formato querystring
+ * @param method GET ou POST
+ * @returns json
+ */
+const publicCall = async (path, data, method = 'GET') => {
+    try{
+        // monta a query
+        const query = data ? `?${querystring.stringify(data)}` : ''
+        // faz a chamada
+        const result = await axios({
+            method,
+            url: `${process.env.API_URL}/${process.env.API_VERSION}/${path}${query}`
+        })
+        return result.data
+    }
+    catch(err){
+        console.log(err)
+    }
+}
+
+
+/**
+ * Metodo de teste, que retora o horario do servidor
+ * 
+ * @returns json
+ */
+const time = () => {
+    return publicCall('time')
+}
+
+// exports
+module.exports = {
+    time
+}
+
+
+10 - Modifique o index.js para chamar a API
+// imports
+const api = require('./api')
+
+setInterval(async () => {
+    // faz a chamada
+    console.log('Chamou a API :',  await api.time())
+}, process.env.CRAWLER_INTERVAL)
+
+11 - Teste
+npm start
+// Deve imprimir o timestamp do servidor da Binance, ex:
+Chamou a API : { serverTime: 1633299402667 }
