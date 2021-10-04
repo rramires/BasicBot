@@ -6,6 +6,7 @@ setInterval(async () => {
     /*
     console.log('Chamou a API :',  await api.time())
     //console.log('ExchangeInfo :',  await api.exchangeInfo())
+    console.log('Account Info: ',  await api.accountInfo())
     */
 
     let buy = 0, sell = 0
@@ -34,5 +35,12 @@ setInterval(async () => {
     else{
         console.log('Esperando o mercado sair do lugar...')
     }
+
+    // fas a chamada na carteira
+    const account = await api.accountInfo()
+    // filtra para pegar as moedas
+    const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
+    console.log('Posição da carteira: ', coins)
+
 }, process.env.CRAWLER_INTERVAL)
 

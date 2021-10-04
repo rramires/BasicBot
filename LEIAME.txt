@@ -371,20 +371,180 @@ Compre !!!
 ------------------------------
 
 
-29 - 
+29 - Criando uma chamada para a carteira, que deve ser "privada"
+/*
+Chamadas privadas requerem mais cuidado que as públicas, pois retornam dados sensíveis
+Então precisam ser encriptadas
+/*
+Para isso vamos criar um novo método para chamadas privadas.
+
+No início de api.js, adicione o pacote de criptografia e as infos da API do .env
+const crypto = require('crypto')
+const apiKey = process.env.API_KEY
+const secretKey = process.env.SECRET_KEY
+const apiURL = process.env.API_URL
+const apiVersion = process.env.API_VERSION
+
+Aproveite e em publicCall, substitua os process.env.XXX
+const url = `${apiURL}/${apiVersion}/${path}${query}`
+// teste para ver se está funcionando
+
+Depois de publicCall, crie um novo método, para as chamadas privadas/encriptadas
+/**
+ * Metodo interno que monta e faz as chamadas privadas
+ * 
+ * @param path - Consulta desejada na API
+ * @param data - Dados que serão convertidos no formato querystring
+ * @param method GET ou POST
+ * @returns json
+ */
+const privateCall = async (path, data = {}, method = 'GET') => {
+    try{
+        // pega o timestamp
+        const timestamp = Date.now()
+        // monta o hash/assinatura 
+        const signature = crypto.createHmac('sha256', secretKey) // cria a assinatura
+                                // incrementa os dados e o timestamp
+                                .update(`${querystring.encode({...data, timestamp})}`) 
+                                // define o formato de saída
+                                .digest('hex')
+        //console.log('Signature', signature)
+        
+        // gera o objeto de dados
+        const newData = {...data, timestamp, signature}
+
+        // monta a query
+        const query = `?${querystring.encode(newData)}`
+
+        // monta a url
+        const url = `${apiURL}/${apiVersion}/${path}${query}`
+        //console.log('url: ', url)
+
+        // faz a chamada 
+        // 'X-MBX-APIKEY', é um Header específico da Binance que tem que ter a API_KEY
+        const result = await axios({
+            method,
+            url,
+            headers: {
+                'X-MBX-APIKEY': apiKey
+            }
+        })
+        return result.data
+    }
+    catch(err){
+        console.log(err)
+    }
+}
 
 
+30 - Agora é possível criar um método para acessar a carteira
+/**
+ * Retorna as informações da Conta
+ * 
+ * @returns json
+ */
+ const accountInfo = async () => {
+    return privateCall('account')
+}
+
+Não esqueça de exportar
+module.exports = {
+    time,
+    depth,
+    exchangeInfo,
+    accountInfo
+}
 
 
+31 - Comente as outras chamadas na app, e adicione
+console.log('Account Info: ',  await api.accountInfo())
+
+Teste
+npm start
+// Deve retornar algo similar a
+Account Info:  {
+  makerCommission: 0, etc...
+
+E o que nos interessa são os saldos:
+balances: [
+    { asset: 'BNB', free: '1000.00000000', locked: '0.00000000' }, etc...
 
 
+32 - Filtrando
+// faz a chamada na carteira
+const account = await api.accountInfo()
+// filtra para pegar as moedas
+const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
+console.log('Posição da carteira: ', coins)
+
+// Testando, deve retornar algo similar a
+Posição da carteira: [
+  { asset: 'BTC', free: '1.00000000', locked: '0.00000000' },
+  { asset: 'USDT', free: '10000.00000000', locked: '0.00000000' }
+]
 
 
+33 - O código até aqui da app, index.js é:
+// imports
+const api = require('./api')
+const symbol = process.env.SYMBOL
+
+setInterval(async () => {
+    /*
+    console.log('Chamou a API :',  await api.time())
+    //console.log('ExchangeInfo :',  await api.exchangeInfo())
+    console.log('Account Info: ',  await api.accountInfo())
+    */
+
+    let buy = 0, sell = 0
+
+    // faz a chamada no book
+    const result = await api.depth(symbol)
+    console.log('Symbol: ',  symbol)
+
+    // filtra testando se não está vazio
+    if(result.bids && result.bids.length){
+        console.log('Highest Buy: ',  result.bids[0][0])
+        buy = parseInt(result.bids[0][0])
+    }
+    if(result.asks && result.asks.length){
+        console.log('Lowest Sell: ',  result.asks[0][0])
+        sell = parseInt(result.asks[0][0])
+    }
+
+    // Implemente sua estratégia
+    if(sell < 50000){
+        console.log('Compre !!!')
+    }
+    else if(buy > 60000){
+        console.log('Venda !!!')
+    }
+    else{
+        console.log('Esperando o mercado sair do lugar...')
+    }
+
+    // fas a chamada na carteira
+    const account = await api.accountInfo()
+    // filtra para pegar as moedas
+    const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
+    console.log('Posição da carteira: ', coins)
+
+}, process.env.CRAWLER_INTERVAL)
 
 
+34 - Testando
+npm start
+// Testando, deve retornar algo similar a
+Symbol:  BTCUSDT
+Highest Buy:  49258.87000000
+Lowest Sell:  49258.88000000
+Compre !!!
+Posição da carteira:  [
+  { asset: 'BTC', free: '1.00000000', locked: '0.00000000' },
+  { asset: 'USDT', free: '10000.00000000', locked: '0.00000000' }
+]
 
-
-
+------------------------------
 
 
 
