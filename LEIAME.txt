@@ -175,17 +175,186 @@ setInterval(async () => {
     // console.log('Depth :',  await api.depth())
     const result = await api.depth()
     console.log('Highest Buy: ',  result.bids[0][0])
-    console.log('Highest Sell: ',  result.asks[0][0])
+    console.log('Lowest Sell: ',  result.asks[0][0])
 }, process.env.CRAWLER_INTERVAL)
 
 
 16 - Teste novamente
 npm start
-// Deve imprimir 5 linhas do book, ex:
+// Deve imprimir 2 linhas do book, ex:
 Highest Buy:  47955.62000000
-Highest Sell:  47955.63000000
+Lowest Sell:  47955.63000000
 
 ------------------------------
 
 
-17 - 
+17 - Criar o acesso à API Testnet da Binance.
+Faça login no GitHub
+
+Vá em 
+testnet.binance.vision
+
+Clique no início da página em
+Log In with GitHub
+
+Clique em Authorize binance-exchange
+
+Clique em Generate HMAC_SHA256 Key
+Digite um nome e salve as as chaves em algum local seguro, pois senão terá que criar outras
+API Key: XXXX...
+Secret Key: YYYY...
+
+
+18 - Adicione as chaves geradas no .env
+API_KEY=XXXX...
+SECRET_KEY=YYYY...
+
+Mude a URL para testnet
+API_URL=https://testnet.binance.vision/api 
+
+Aumente o tempo para 5 segundos
+CRAWLER_INTERVAL=5000
+
+Adicione mais uma configuração para definir o symbol (par de moedas)
+SYMBOL=BTCUSDT
+
+Tudo fica assim:
+API_URL=https://testnet.binance.vision/api 
+API_VERSION = v3
+API_KEY=XXXX...
+SECRET_KEY=YYYY...
+CRAWLER_INTERVAL=5000
+PROFITABILITY=1.05
+SYMBOL=BTCUSDT
+
+19 - Teste novamente
+npm start
+// lembre-se que agora são valores fake
+Highest Buy:  48780.83000000
+Lowest Sell:  48783.51000000
+
+// Obs: a API de teste forneçe uma carteira com pares e valores fake que mudam de tempo em tempo
+
+------------------------------
+
+
+20 - Pegando as informações da Exchange. Em api.js adicione o metodo
+/**
+ * Retorna as informações da Exchange
+ * 
+ * @returns json
+ */
+const exchangeInfo = async () => {
+    return publicCall('exchangeInfo')
+}
+
+Adicione no Exports
+module.exports = {
+    time,
+    depth,
+    exchangeInfo
+}
+
+
+21 - Adicione na app, index.js para testar
+setInterval(async () => {
+    // faz a chamada
+    // console.log('Chamou a API :',  await api.time())
+    // console.log('Depth :',  await api.depth())
+    /*
+    const result = await api.depth()
+    console.log('Highest Buy: ',  result.bids[0][0])
+    console.log('Lowest Sell: ',  result.asks[0][0])
+    */
+   console.log('ExchangeInfo :',  await api.exchangeInfo())
+}, process.env.CRAWLER_INTERVAL)
+
+
+22 - Teste 
+npm start
+// Retorna um json enorme
+ExchangeInfo : {
+  timezone: 'UTC',
+  serverTime: 1633366741436, etc...
+
+
+23 - Observe nesse json, mais abaixo em "symbols" os pares que estão sendo operados(TRADING) no momento, ex:
+symbol: 'BTCUSDT',
+status: 'TRADING'
+
+symbol: 'BNBUSDT',
+status: 'TRADING'
+etc...
+
+// Outra informação, caso não saiba
+Bids = Ordens de compra
+Asks = Ordens de venda
+
+
+24 - Adicione um deles ao .env No meu caso, resolvi manter BTCUSDT pois está ativo (TRADING)
+SYMBOL=BTCUSDT
+
+
+25 - Na app, index.js vamos pegar o symbol do .env
+No início adicione
+const api = require('./api')
+const symbol = process.env.SYMBOL
+
+E adicione na chamada ao depth
+setInterval(async () => {
+    // faz a chamada
+    //console.log('Chamou a API :',  await api.time())
+    //console.log('ExchangeInfo :',  await api.exchangeInfo())
+    const result = await api.depth(symbol)
+    console.log('Symbol: ',  symbol)
+    console.log('Highest Buy: ',  result.bids[0][0])
+    console.log('Lowest Sell: ',  result.asks[0][0])
+}, process.env.CRAWLER_INTERVAL)
+
+
+26 - Teste 
+npm start
+// Retorna
+Symbol:  BTCUSDT
+Highest Buy:  48408.46000000
+Lowest Sell:  48420.23000000
+
+------------------------------
+
+
+27 - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -47,7 +47,7 @@ const time = async () => {
  * 
  * @param symbol Par de moedas, ex BTCUSDT, LTCBTC, etc
  * @param limit Quantidade de ordens no book - Minimo 5
- * @returns 
+ * @returns json
  */
 const depth = async (symbol = 'BTCUSDT', limit = 5) => {
     return publicCall('depth', {
@@ -57,8 +57,19 @@ const depth = async (symbol = 'BTCUSDT', limit = 5) => {
 }
 
 
+/**
+ * Retorna as informações da Exchange
+ * 
+ * @returns json
+ */
+const exchangeInfo = async () => {
+    return publicCall('exchangeInfo')
+}
+
+
 // exports
 module.exports = {
     time,
-    depth
+    depth,
+    exchangeInfo
 }
