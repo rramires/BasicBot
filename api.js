@@ -124,8 +124,30 @@ const exchangeInfo = async () => {
  * 
  * @returns json
  */
- const accountInfo = async () => {
+const accountInfo = async () => {
     return privateCall('account')
+}
+
+
+/**
+ * 
+ * @param symbol - Par de moedas, ex BTCUSDT
+ * @param quantity - Quantidade
+ * @param price - Preço
+ * @param side - Qual book, BUY ou SELL
+ * @param type - Tipo de ordem, LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER
+ * @returns json
+ */
+const newOrder = async (symbol, quantity, price, side = 'BUY', type = 'MARKET') => {
+    // monta o objeto de dados
+    const data = {symbol, side, type, quantity}
+    if(price){
+        data.price = price
+    }
+    if(type === 'LIMIT'){
+        data.timeInForce = 'GTC' // got til canceled - Ordem não expira
+    }
+    return privateCall('order', data, method = 'POST')
 }
 
 
@@ -134,5 +156,6 @@ module.exports = {
     time,
     depth,
     exchangeInfo,
-    accountInfo
+    accountInfo,
+    newOrder
 }

@@ -547,6 +547,103 @@ Posição da carteira:  [
 ------------------------------
 
 
+35 - Criando ordens. No api.js vamos adicionar mais um método
+/**
+ * 
+ * @param symbol - Par de moedas, ex BTCUSDT
+ * @param quantity - Quantidade
+ * @param price - Preço
+ * @param side - Qual book, BUY ou SELL
+ * @param type - Tipo de ordem, LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER
+ * @returns json
+ */
+const newOrder = async (symbol, quantity, price, side = 'BUY', type = 'MARKET') => {
+    // monta o objeto de dados
+    const data = {symbol, side, type, quantity}
+    if(price){
+        data.price = price
+    }
+    if(type === 'LIMIT'){
+        data.timeInForce = 'GTC' // got til canceled - Ordem não expira
+    }
+    return privateCall('order', data, method = 'POST')
+}
+
+E exportar
+module.exports = {
+    time,
+    depth,
+    exchangeInfo,
+    accountInfo,
+    newOrder
+}
+
+
+36 - Agora vamos modificar a app, para validar algumas coisas e comprar
+// Rode a app e verifique se o valor do IF é suficiente para comprar. ex if(sell < 51000)... tive que aumentar o valor hj.
+// Depois a lógica de teste fica assim
+
+// faz a chamada na carteira
+const account = await api.accountInfo()
+// filtra para pegar as moedas
+const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
+console.log('Posição da carteira: ', coins)
+
+// Implemente sua estratégia
+if(sell < 51000){      
+    // Verificando se tenho saldo 
+    const saldo = parseInt(coins.find(c => c.asset === 'USDT').free)
+    if(saldo > 10){
+        console.log('Meu saldo é de: ', saldo)
+        // Executa a ordem, comprando 0.01 BTC com USDT por exemplo
+        // Não passamos p price, pois é uma ordem a mercado
+        // ou seja, o menor preço no momento
+        console.log('Compra: ', await api.newOrder(symbol, 0.01))
+    }
+    else{
+        console.log('Saldo inferior a 10')
+    }
+
+}
+else if(buy > 52500){
+    console.log('Venda !!!')
+}
+else{
+    console.log('Esperando o mercado sair do lugar...')
+}
+
+
+37 - Teste
+npm start
+// Se comprou deve retornar algo similar a
+Compra:  {
+  symbol: 'BTCUSDT',
+  orderId: 1887135, etc...
+
+// Perceba que foi completada 
+status: 'FILLED'
+
+
+38 - Comente a linha que executa a compra e teste novamente
+//console.log('Compra: ', await api.newOrder(symbol, 0.01))
+
+// Perceba a mudança dos saldos na carteira de USDT e BTC, ex:
+// De
+Posição da carteira:  [
+  { asset: 'BTC', free: '1.00000000', locked: '0.00000000' },
+  { asset: 'USDT', free: '10000.00000000', locked: '0.00000000' }
+]
+// Para
+Posição da carteira:  [
+  { asset: 'BTC', free: '1.01000000', locked: '0.00000000' },
+  { asset: 'USDT', free: '9494.58249465', locked: '0.00000000' }
+]
+
+
+------------------------------
+
+
+39 -
 
 
 

@@ -25,22 +25,33 @@ setInterval(async () => {
         sell = parseInt(result.asks[0][0])
     }
 
-    // Implemente sua estratégia
-    if(sell < 50000){
-        console.log('Compre !!!')
-    }
-    else if(buy > 60000){
-        console.log('Venda !!!')
-    }
-    else{
-        console.log('Esperando o mercado sair do lugar...')
-    }
-
-    // fas a chamada na carteira
+    // faz a chamada na carteira
     const account = await api.accountInfo()
     // filtra para pegar as moedas
     const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
     console.log('Posição da carteira: ', coins)
 
+    // Implemente sua estratégia
+    if(sell < 51000){      
+        // Verificando se tenho saldo 
+        const saldo = parseInt(coins.find(c => c.asset === 'USDT').free)
+        if(saldo > 10){
+            console.log('Meu saldo é de: ', saldo)
+            // Executa a ordem, comprando 0.01 BTC com USDT por exemplo
+            // Não passamos p price, pois é uma ordem a mercado
+            // ou seja, o menor preço no momento
+            //console.log('Compra: ', await api.newOrder(symbol, 0.01))
+        }
+        else{
+            console.log('Saldo inferior a 10')
+        }
+
+    }
+    else if(buy > 52500){
+        console.log('Venda !!!')
+    }
+    else{
+        console.log('Esperando o mercado sair do lugar...')
+    }
 }, process.env.CRAWLER_INTERVAL)
 
