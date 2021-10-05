@@ -1,6 +1,7 @@
 // imports
 const api = require('./api')
 const symbol = process.env.SYMBOL
+const profit = process.env.PROFITABILITY
 
 setInterval(async () => {
     /*
@@ -32,15 +33,25 @@ setInterval(async () => {
     console.log('Posição da carteira: ', coins)
 
     // Implemente sua estratégia
-    if(sell < 51000){      
+    if(sell < 52000){      
         // Verificando se tenho saldo 
         const saldo = parseInt(coins.find(c => c.asset === 'USDT').free)
         if(saldo > 10){
             console.log('Meu saldo é de: ', saldo)
             // Executa a ordem, comprando 0.01 BTC com USDT por exemplo
-            // Não passamos p price, pois é uma ordem a mercado
+            // Não passamos o price, pois é uma ordem a mercado
             // ou seja, o menor preço no momento
-            //console.log('Compra: ', await api.newOrder(symbol, 0.01))
+            /*
+            const buyOrder = await api.newOrder(symbol, 0.01)
+            console.log('BuyStatus: ', buyOrder.status, 'id: ', buyOrder.orderId)
+            */
+
+            // Posicionar ordem de venda com algum lucro
+            //const sellPrice = parseInt(sell * profit)
+            const sellPrice = parseInt(buy * 0.9) 
+            const sellOrder = await api.newOrder(symbol, 0.01, sellPrice, 'SELL', 'LIMIT')
+            console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId)
+            console.log('SellOrder: ', sellOrder)
         }
         else{
             console.log('Saldo inferior a 10')

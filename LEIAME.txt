@@ -640,10 +640,52 @@ Posição da carteira:  [
 ]
 
 
+39 - Altere para
+const buyOrder = await api.newOrder(symbol, 0.01)
+console.log('BuyStatus: ', buyOrder.status, 'id: ', buyOrder.orderId)
+
+// Execute novamente e teremos algo similar a
+Symbol:  BTCUSDT
+Highest Buy:  50883.25000000
+Lowest Sell:  50883.26000000
+Posição da carteira:  [
+  { asset: 'BTC', free: '1.01000000', locked: '0.00000000' },
+  { asset: 'USDT', free: '9494.58249465', locked: '0.00000000' }
+]
+Meu saldo é de:  9494
+BuyStatus:  FILLED id:  1903693
+
 ------------------------------
 
 
-39 -
+40 - Criando uma ordem de venda
+// Vamos criar uma ordem de venda imediatamente após comprar, 
+// com o preço de compra multiplicado pelo PROFITABILITY no .env no caso +5%
+No inicio adicione
+const profit = process.env.PROFITABILITY
+
+Depois comente a compra e adicione o código da venda
+// Posicionar ordem de venda com algum lucro
+const sellPrice = parseInt(sell * profit)
+const sellOrder = await api.newOrder(symbol, 0.01, sellPrice, 'SELL', 'LIMIT')
+console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId)
+
+// Testando deve imprimir +-
+SellStatus:  NEW id:  1931358
+
+// A ordem foi posicionada, por isso o status é NEW
+// Troque sellPrice por um valor bem menor para vender, ex comente
+//const sellPrice = parseInt(sell * profit)
+E adicione
+const sellPrice = parseInt(buy * 0.9) 
+
+Teste novamente, agora vem o status como FILLED e o array fills, com as ordens executadas
+SellStatus:  FILLED id:  1939463
+
+------------------------------
+
+
+41 - 
 
 
 
