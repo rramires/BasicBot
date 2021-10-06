@@ -10,6 +10,20 @@ const symDecimal = process.env.SYMBOL_DECIMAL
 const profit = process.env.PROFITABILITY
 const initialBuy = process.env.INITIAL_BUY
 
+/**
+ * Média ponderada
+ */
+const avgObj = (array, propValue, propWeight) => {
+    const [sum, weightSum] = array.reduce((acc, order) =>{
+        let value = parseFloat(order[propValue])
+        let weight = parseFloat(order[propWeight])
+        acc[0] = acc[0] + value * weight
+        acc[1] = acc[1] + weight
+        return acc
+    }, [0, 0]) 
+    return parseFloat(sum / weightSum)
+}
+
 
 setInterval(async () => {
     /*
@@ -42,7 +56,7 @@ setInterval(async () => {
 
     
     // Se for maior que o valor definido
-    if(sell >= initialBuy){      
+    if(sell && sell >= initialBuy){      
         // Verificando se tenho saldo 
         const saldo = parseFloat(coins.find(c => c.asset === accSymbol).free)
         // Verifica se o saldo é o mínimo possivel para efetuar uma ordem
@@ -54,18 +68,22 @@ setInterval(async () => {
             // Não passamos o price, pois é uma ordem a mercado
             // ou seja, o menor preço no momento
             const buyOrder = await api.newOrder(symbol, qtyOrder)
-            console.log('BuyStatus: ', buyOrder.status, 'id: ', buyOrder.orderId)
+            // pega o preço médio
+            const avgPrice = avgObj(buyOrder.fills, 'price', 'qty')
+            console.log('BuyStatus: ', buyOrder.status, 'id: ', buyOrder.orderId, 'Preço médio:', avgPrice.toFixed(symDecimal))
 
+            // se conseguiu comprar
             if(buyOrder.status === 'FILLED'){
                 // Posicionar ordem de venda com o lucro determinado no PROFITABILITY do .env
-                const sellPrice = parseFloat(sell * profit).toFixed(symDecimal)
+                const sellPrice = parseFloat(avgPrice * profit).toFixed(symDecimal)
+                // cria a ordem
                 const sellOrder = await api.newOrder(symbol, qtyOrder, sellPrice, 'SELL', 'LIMIT')
-                console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId)
+                console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId, 'Preço de venda:', sellPrice)
                 // console.log('SellOrder: ', sellOrder)
             }
         }
         else{
-            console.log(`Saldo inferior a ${accMinOrder}`, saldo)
+            console.log(`Saldo inferior a ${accMinOrder} = `, saldo)
         }
     }
     else{
