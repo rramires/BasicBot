@@ -1,7 +1,15 @@
 // imports
 const api = require('./api')
+// .env
+const interval = process.env.CRAWLER_INTERVAL
 const symbol = process.env.SYMBOL
+const accSymbol = process.env.ACC_SYMBOL
+const accMinOrder = process.env.ACC_MIN_ORDER
+const qtyOrder = process.env.QTY_ORDER
+const symDecimal = process.env.SYMBOL_DECIMAL
 const profit = process.env.PROFITABILITY
+const initialBuy = process.env.INITIAL_BUY
+
 
 setInterval(async () => {
     /*
@@ -19,11 +27,11 @@ setInterval(async () => {
     // filtra testando se não está vazio
     if(result.bids && result.bids.length){
         console.log('Highest Buy: ',  result.bids[0][0])
-        buy = parseInt(result.bids[0][0])
+        buy = parseFloat(result.bids[0][0])
     }
     if(result.asks && result.asks.length){
         console.log('Lowest Sell: ',  result.asks[0][0])
-        sell = parseInt(result.asks[0][0])
+        sell = parseFloat(result.asks[0][0])
     }
 
     // faz a chamada na carteira
@@ -32,37 +40,37 @@ setInterval(async () => {
     const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
     console.log('Posição da carteira: ', coins)
 
-    // Implemente sua estratégia
-    if(sell < 52000){      
+    
+    // Se for maior que o valor definido
+    if(sell >= initialBuy){      
         // Verificando se tenho saldo 
-        const saldo = parseInt(coins.find(c => c.asset === 'USDT').free)
-        if(saldo > 10){
+        const saldo = parseFloat(coins.find(c => c.asset === accSymbol).free)
+        // Verifica se o saldo é o mínimo possivel para efetuar uma ordem
+        if(saldo > accMinOrder){
+            //
             console.log('Meu saldo é de: ', saldo)
+
             // Executa a ordem, comprando 0.01 BTC com USDT por exemplo
             // Não passamos o price, pois é uma ordem a mercado
             // ou seja, o menor preço no momento
-            /*
-            const buyOrder = await api.newOrder(symbol, 0.01)
+            const buyOrder = await api.newOrder(symbol, qtyOrder)
             console.log('BuyStatus: ', buyOrder.status, 'id: ', buyOrder.orderId)
-            */
 
-            // Posicionar ordem de venda com algum lucro
-            //const sellPrice = parseInt(sell * profit)
-            const sellPrice = parseInt(buy * 0.9) 
-            const sellOrder = await api.newOrder(symbol, 0.01, sellPrice, 'SELL', 'LIMIT')
-            console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId)
-            console.log('SellOrder: ', sellOrder)
+            if(buyOrder.status === 'FILLED'){
+                // Posicionar ordem de venda com o lucro determinado no PROFITABILITY do .env
+                const sellPrice = parseFloat(sell * profit).toFixed(symDecimal)
+                const sellOrder = await api.newOrder(symbol, qtyOrder, sellPrice, 'SELL', 'LIMIT')
+                console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId)
+                // console.log('SellOrder: ', sellOrder)
+            }
         }
         else{
-            console.log('Saldo inferior a 10')
+            console.log(`Saldo inferior a ${accMinOrder}`, saldo)
         }
-
-    }
-    else if(buy > 52500){
-        console.log('Venda !!!')
     }
     else{
         console.log('Esperando o mercado sair do lugar...')
     }
-}, process.env.CRAWLER_INTERVAL)
+    
+}, interval)
 

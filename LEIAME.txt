@@ -1,3 +1,12 @@
+/*
+ATENÇÃO: 
+Esse bot é só um exemplo para facilitar o aprendizado de acesso a API!
+A responsabilidade é totalmente sua! É algo muito cru pra ser usado em produção com o objetivo de obter lucros.
+Implemente suas estratégias por SUA CONTA e RISCO!
+Não venha perturbar depois esperando resultado ou alegando prejuízo se usado em produção. 
+*/
+
+
 1 - Inicir projeto
 npm init -y
 
@@ -685,7 +694,114 @@ SellStatus:  FILLED id:  1939463
 ------------------------------
 
 
-41 - 
+41 - Agora vamos refatorar algumas coisas. 
+Se der algum erro, lembre-se:
+400 - Passou algum parâmetro errado, ou fora de ordem 
+401 - Chaves(API Key) com problema 
+404 - URL Errada
+
+
+a) Primeira cagada! troque todos os parseInt por parseFloat. Senão valores menores que 0, ex 0.334 viram Zero.
+ctrl+h no VSCode 
+
+
+b) Qdo enviamos mais de 8 casas decimais em algum parametro para a API, da erro.
+   Mas depende da moeda. Eu acho que é no máximo 8 caracteres, no caso do BTC, são 2 casas decimais 
+   Podemos depois implementar uma lógica melhor, por enquanto vamos consertar, com o .toFixed(2), ex
+const sellPrice = parseFloat(sell * profit).toFixed(2)
+
+
+c) Como definimos uma estratégia de exemplo de comprar e já posicionar 
+  uma ordem de venda com algum percentual, perdeu o sentido o else if 
+  de estratégia. Remova:
+  else if(buy > 52500){
+    console.log('Venda !!!')
+  }
+
+
+d) Vamos organizar e comentar o .env e adicionar mais a# Informações da API da Binance
+# Informações da API da Binance
+API_URL=https://testnet.binance.vision/api 
+API_VERSION = v3
+API_KEY=Jm0nju9adddWcjyozgD3gjotRZ2zn0nI1KWk3yJxmmwBYVcDHyqXPig2GPfjafKh
+SECRET_KEY=ENbk16yCcD9S6gsi9HlUfokwFSN1v3pLZ0TGVQ46akyuQBFszHxP3UhFwEXrcUB2
+#
+# Intervalo em que são feitas as chamadas em milissegundos 
+CRAWLER_INTERVAL=5000
+#
+# Ver pares de moedas e valores mínimos em binance.com/en/trade-rule
+# Par de moedas
+SYMBOL=BTCUSDT
+# Qual moeda será acumulada. Ex acumular USDT num par BTCUSDT, Acumular BTC, num par BTCLTC
+ACC_SYMBOL=USDT
+# Saldo mínimo suficiente para fazer uma ordem, EX em USDT são 10 dólares
+ACC_MIN_ORDER=10
+# Quantidade a ser comprada e posta à venda por vez: EX 0.01BTC
+QTY_ORDER=0.01
+# Quantidade de casas decimais da moeda que quer vender, Ex BTC são 2
+SYMBOL_DECIMAL=2
+# Porcentagem adicionada ao valor de venda, ex 1.1 +10%, 1.05 +5%, etc 
+PROFITABILITY=1.05
+# Valor mínimo para começar a comprar. Qdo passar desse valor, inicia
+INITIAL_BUY=54000
+
+
+e) Adicione esses novos parametros no inicio da app
+// .env
+const interval = process.env.CRAWLER_INTERVAL
+const symbol = process.env.SYMBOL
+const accSymbol = process.env.ACC_SYMBOL
+const accMinOrder = process.env.ACC_MIN_ORDER
+const qtyOrder = process.env.QTY_ORDER
+const symDecimal = process.env.SYMBOL_DECIMAL
+const profit = process.env.PROFITABILITY
+const initialBuy = process.env.INITIAL_BUY
+
+
+f) Vamos substituir os valores no código pelos do .env
+
+if(sell < 52000){ para
+// Se for maior que o valor definido
+if(sell >= initialBuy){  ...
+
+const saldo = parseFloat(coins.find(c => c.asset === 'USDT').free) para
+const saldo = parseFloat(coins.find(c => c.asset === accSymbol).free)
+
+if(saldo > 10){ para
+if(saldo > accMinOrder){
+E no else no final
+console.log(`Saldo inferior a ${accMinOrder}`, saldo)
+
+const buyOrder = await api.newOrder(symbol, 0.01) para
+const buyOrder = await api.newOrder(symbol, qtyOrder)
+
+g) Coloque a parte responsável pela compra dentro de um if 
+   para verificar se a compra deu certo antes de executar
+if(buyOrder.status === 'FILLED'){
+    // Posicionar ordem de venda com o lucro determinado no PROFITABILITY do .env
+    const sellPrice = parseFloat(sell * profit).toFixed(8)
+    const sellOrder = await api.newOrder(symbol, 0.01, sellPrice, 'SELL', 'LIMIT')
+    console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId)
+    console.log('SellOrder: ', sellOrder)
+}
+
+Na linha const sellOrder = await api.newOrder(symbol, 0.01, sellPrice, 'SELL', 'LIMIT')
+Troque o 0.01 por qtyOrder
+const sellOrder = await api.newOrder(symbol, qtyOrder, sellPrice, 'SELL', 'LIMIT')
+
+Na linha const sellPrice = parseFloat(sell * profit).toFixed(2)
+Troque o 2 por symDecimal
+const sellPrice = parseFloat(sell * profit).toFixed(symDecimal)
+
+Teste para ver se ainda funciona, senão revise o código :)
+npm start
+
+------------------------------
+
+
+
+
+
 
 
 
