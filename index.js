@@ -2,17 +2,22 @@
 const api = require('./api')
 // .env
 const interval = process.env.CRAWLER_INTERVAL
+//
 const symbol = process.env.SYMBOL
+//
 const accCoin = process.env.ACC_COIN
-const coin = process.env.COIN
+const accDecimal = process.env.ACC_DECIMAL
 const accMinOrder = process.env.ACC_MIN_ORDER
 const accMinBalance = process.env.ACC_MIN_BALANCE
+const initialBuy = process.env.INITIAL_BUY
+//
+const coin = process.env.COIN
+const coinDecimal = process.env.COIN_DECIMAL
 const qtyOrder = process.env.QTY_ORDER
 const minOrder = process.env.MIN_ORDER
-const symDecimal = process.env.SYMBOL_DECIMAL
 const profit = process.env.PROFITABILITY
 const buyBack = process.env.BUY_BACK
-const initialBuy = process.env.INITIAL_BUY
+
 
 /**
  * Média ponderada
@@ -46,10 +51,11 @@ const sdtDate = (timestamp) =>{
 }
 
 
-setInterval(async () => {
-    //
-    let buy = 0, sell = 0
+// armazena o maior valor de compra
+let athWhenBought = 0
 
+
+setInterval(async () => {
     // limpa
     console.clear()
 
@@ -60,14 +66,15 @@ setInterval(async () => {
     const result = await api.depth(symbol)
     console.log('Book:',  symbol, '- Server Time:', sdtDate(time.serverTime))
 
+    let buy = 0, sell = 0
     // filtra testando se não está vazio
     if(result.bids && result.bids.length){
-        console.log('Highest Buy:',  result.bids[0][0])
         buy = parseFloat(result.bids[0][0])
+        console.log('Highest Buy:',  buy)
     }
     if(result.asks && result.asks.length){
-        console.log('Lowest Sell:',  result.asks[0][0])
         sell = parseFloat(result.asks[0][0])
+        console.log('Lowest Sell:',  sell)
     }
     // linha
     console.log('----------------------------------------------------------------------')
@@ -82,58 +89,85 @@ setInterval(async () => {
     const coinFree = parseFloat(coins.find(c => c.asset === coin).free)
     const coinLocked = parseFloat(coins.find(c => c.asset === coin).locked)
     const coinTotal = coinFree + coinLocked
-    console.log('Total', `${coin}:`, coinTotal.toFixed(symDecimal), '- Free:', coinFree.toFixed(symDecimal), '- Locked:', coinLocked.toFixed(symDecimal))
+    console.log('Total', `${coin}:`, coinTotal.toFixed(coinDecimal), '- Free:', coinFree.toFixed(coinDecimal), '- Locked:', coinLocked.toFixed(coinDecimal))
 
     // Pegando os saldos na moeda de acumulação
     const accFree = parseFloat(coins.find(c => c.asset === accCoin).free)
     const accLocked = parseFloat(coins.find(c => c.asset === accCoin).locked)
     const accTotal = accFree + accLocked
-    console.log('Total', `${accCoin}:`, accTotal.toFixed(symDecimal), '- Free:', accFree.toFixed(symDecimal), '- Locked:', accLocked.toFixed(symDecimal))
+    console.log('Total', `${accCoin}:`, accTotal.toFixed(accDecimal), '- Free:', accFree.toFixed(accDecimal), '- Locked:', accLocked.toFixed(accDecimal))
 
     // Calculando o saldo total da carteira na moeda de acumulação
     const totalBalance = parseFloat(accTotal + (coinTotal * sell))
-    console.log('Total Balance:', totalBalance.toFixed(symDecimal), accCoin)
+    console.log('Min Balance:', parseFloat(accMinBalance).toFixed(accDecimal), '- Aprox. Total Balance:', totalBalance.toFixed(accDecimal), accCoin)
     // linha
     console.log('----------------------------------------------------------------------')
 
     
+    /**
+     * Se tiver ordem no book de vendas
+     * se for maior que o valor mínimo de entrada, definido no book
+     */
+    if(sell < 0 && sell <= initialBuy){ 
+        console.log('Waiting for the market to reach:', initialBuy)
+    }
+    else{
+        /**
+         * Cálculos do tamanho da ordem
+         */
 
-    // Se for maior que o valor definido
-    //if(sell && sell >= initialBuy){      
-        
-        
+        // calcula o valor disponivel para compra
+        const accAvailable = accFree - accMinBalance - accMinOrder
+        //console.log('accAvailable:', accAvailable)
 
-        // calcula o valor da carteira na moeda de acumulação
-        //
-        
-       
-            //
+        // calcula o tamanho da ordem na moeda de acumulo de acordo com o definido em QTY_ORDER
+        const buyAccValue = parseFloat(qtyOrder * sell)
+
+        // calcula o tamanho mínimo da ordem possível na moeda de acumulo de acordo com o definido em MIN_ORDER
+        const minBuyAccValue = parseFloat(minOrder * sell)
+
+        // valor a ser comprado
+        let buyValue = 0
+
+        // Verifica se tem saldo suficiente para comprar o valor inteiro definido em QTY_ORDER
+        if(buyAccValue <= accAvailable){
+            buyValue = qtyOrder
+        }
+        // Verifica se tem saldo suficiente para comprar o mínimo definido em MIN_ORDER
+        else if(minBuyAccValue <= accAvailable){
+            buyValue = parseFloat(accAvailable / sell).toFixed(coinDecimal)
+        }
+        else{
+            console.log('There is not enough balance for a purchase.')
+        }
+        // console.log('buyValue:', buyValue)
+
+        // se foi validado e definido um valor de compra
+        if(buyValue > 0){
             
-            /*
-            Implementar a compra até o final do saldo, respeitando o saldo mínimo
-            */
+            /**
+             * Faz a compra
+             * Não passamos o price, pois é uma ordem a mercado 
+             * ou seja, o menor preço no momento
+             */ 
+            const buyOrder = await api.newOrder(symbol, buyValue)
 
-            /*
-            // Executa a ordem, comprando 0.01 BTC com USDT por exemplo
-            // Não passamos o price, pois é uma ordem a mercado
-            // ou seja, o menor preço no momento
-            const buyOrder = await api.newOrder(symbol, qtyOrder)
-            // pega o preço médio
+            // calcula o preço médio da compra
             const avgPrice = avgObj(buyOrder.fills, 'price', 'qty')
-            console.log('BuyStatus: ', buyOrder.status, 'id: ', buyOrder.orderId, 'Preço médio:', avgPrice.toFixed(symDecimal))
+            console.log('BuyStatus:', buyOrder.status, '- Id: ', buyOrder.orderId, '- Qty:', buyValue, '- Average price:', avgPrice.toFixed(accDecimal))
 
-            // se conseguiu comprar
+            
+            // se conseguiu comprar, posicionar ordem de venda com o lucro determinado no PROFITABILITY do .env
             if(buyOrder.status === 'FILLED'){
-                // Posicionar ordem de venda com o lucro determinado no PROFITABILITY do .env
-                const sellPrice = parseFloat(avgPrice * profit).toFixed(symDecimal)
+                // adiciona o percentual de lucro em cima do preço médio
+                const sellPrice = parseFloat(avgPrice * profit).toFixed(accDecimal)
+
                 // cria a ordem
-                const sellOrder = await api.newOrder(symbol, qtyOrder, sellPrice, 'SELL', 'LIMIT')
-                console.log('SellStatus: ', sellOrder.status, 'id: ', sellOrder.orderId, 'Preço de venda:', sellPrice)
+                const sellOrder = await api.newOrder(symbol, buyValue, sellPrice, 'SELL', 'LIMIT')
+                console.log('SellStatus: ', sellOrder.status, '- Id: ', sellOrder.orderId, '- Qty:', buyValue, '- Sell price:', sellPrice)
                 // console.log('SellOrder: ', sellOrder)
             }
-            */
-        
-    
-    
-}, interval)
+        }
+    }    
+}, interval * 1000)
 
