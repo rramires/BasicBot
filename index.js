@@ -9,7 +9,6 @@ const accCoin = process.env.ACC_COIN
 const accDecimal = process.env.ACC_DECIMAL
 const accMinOrder = process.env.ACC_MIN_ORDER
 const accMinBalance = process.env.ACC_MIN_BALANCE
-const initialBuy = process.env.INITIAL_BUY
 //
 const coin = process.env.COIN
 const coinDecimal = process.env.COIN_DECIMAL
@@ -17,6 +16,10 @@ const qtyOrder = process.env.QTY_ORDER
 const minOrder = process.env.MIN_ORDER
 const profit = process.env.PROFITABILITY
 const buyBack = process.env.BUY_BACK
+const opBalance = process.env.OPENING_BALANCE
+const buyOpBalance = process.env.BUY_OP_BALANCE
+//
+const tradeOn = process.env.TRADE_ON
 
 
 /**
@@ -53,6 +56,8 @@ const sdtDate = (timestamp) =>{
 
 // armazena o maior valor de compra
 let athWhenBought = 0
+// liga/desliga a compra
+let buyOn = true
 
 
 setInterval(async () => {
@@ -70,11 +75,11 @@ setInterval(async () => {
     // filtra testando se não está vazio
     if(result.bids && result.bids.length){
         buy = parseFloat(result.bids[0][0])
-        console.log('Highest Buy:',  buy)
+        console.log('Highest Buy:',  buy.toFixed(accDecimal))
     }
     if(result.asks && result.asks.length){
         sell = parseFloat(result.asks[0][0])
-        console.log('Lowest Sell:',  sell)
+        console.log('Lowest Sell:',  sell.toFixed(accDecimal))
     }
     // linha
     console.log('----------------------------------------------------------------------')
@@ -84,6 +89,8 @@ setInterval(async () => {
     // filtra para pegar as moedas
     const coins = account.balances.filter(b => symbol.indexOf(b.asset) !== -1)
     //console.log('Posição da carteira: ', coins)
+
+    console.log('Account:', )
 
     // Pegando os saldos na moeda 
     const coinFree = parseFloat(coins.find(c => c.asset === coin).free)
@@ -102,16 +109,40 @@ setInterval(async () => {
     console.log('Min Balance:', parseFloat(accMinBalance).toFixed(accDecimal), '- Aprox. Total Balance:', totalBalance.toFixed(accDecimal), accCoin)
     // linha
     console.log('----------------------------------------------------------------------')
-
     
+
     /**
-     * Se tiver ordem no book de vendas
-     * se for maior que o valor mínimo de entrada, definido no book
+     * Se tiver ordem no book de vendas E
+     * Se a flag BUYANDSELL_ON no .env for verdadeira
      */
-    if(sell < 0 && sell <= initialBuy){ 
-        console.log('Waiting for the market to reach:', initialBuy)
-    }
-    else{
+    if(sell && parseInt(tradeOn) > 0){
+        /**
+         * Ativa a recompra
+         */
+
+        // calcula o preço para reinício da compra
+        // maior preço de compra * BUY_BACK do .env
+        let startBuyPrice = parseFloat(athWhenBought * buyBack)
+
+        // calcula a parte do saldo inicial a ser atingido para ativar a recompra
+        let startOpBalance = parseFloat(opBalance * buyOpBalance)
+
+        // se a compra estiver desativada
+        if(!buyOn)
+        {
+            // se o preço de venda for maior ou igual ao do book OU
+            // se o saldo livre atingir a proporção definida em BUY_OP_BALANCE
+            if(startBuyPrice >= sell || accFree >= startOpBalance){
+                // reativa a compra
+                buyOn = true;
+                console.log('Reached the purchase price:', startBuyPrice.toFixed(accDecimal), 'or Free Balance >=', startOpBalance.toFixed(accDecimal),'Buy:', buyOn)
+            }
+            else{
+                console.log('Buy when it reaches:', startBuyPrice.toFixed(accDecimal), 'or Free Balance >=', startOpBalance.toFixed(accDecimal),'Buy:', buyOn)
+            }
+        }
+
+
         /**
          * Cálculos do tamanho da ordem
          */
@@ -138,12 +169,17 @@ setInterval(async () => {
             buyValue = parseFloat(accAvailable / sell).toFixed(coinDecimal)
         }
         else{
-            console.log('There is not enough balance for a purchase.')
+            if(buyOn){
+                console.log('There is not enough balance for a purchase.')
+            }
+            // quando não houver mais saldo, desliga a compra
+            buyOn = false
         }
         // console.log('buyValue:', buyValue)
 
-        // se foi validado e definido um valor de compra
-        if(buyValue > 0){
+        // se foi validado e definido um valor de compra E
+        // se buyOn for verdadeiro
+        if(buyValue > 0 && buyOn){
             
             /**
              * Faz a compra
@@ -156,6 +192,10 @@ setInterval(async () => {
             const avgPrice = avgObj(buyOrder.fills, 'price', 'qty')
             console.log('BuyStatus:', buyOrder.status, '- Id: ', buyOrder.orderId, '- Qty:', buyValue, '- Average price:', avgPrice.toFixed(accDecimal))
 
+            // Armazena sempre o maior valor de compra
+            if(avgPrice > athWhenBought){
+                athWhenBought = avgPrice
+            }
             
             // se conseguiu comprar, posicionar ordem de venda com o lucro determinado no PROFITABILITY do .env
             if(buyOrder.status === 'FILLED'){
