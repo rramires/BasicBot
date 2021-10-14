@@ -1,0 +1,31 @@
+{
+  symbol: 'BTCUSDT',
+  orderId: 1926696,
+  orderListId: -1,
+  clientOrderId: 'DkfyQAkBYuW4BaQH6G2BPK',
+  transactTime: 1633468120799,
+  price: '0.00000000',
+  origQty: '0.01000000',
+  executedQty: '0.01000000',
+  cummulativeQuoteQty: '513.62620530',
+  status: 'FILLED',
+  timeInForce: 'GTC',
+  type: 'MARKET',
+  side: 'BUY',
+  fills: [
+    {
+      price: '51362.62000000',
+      qty: '0.00973500',
+      commission: '0.00000000',
+      commissionAsset: 'BTC',
+      tradeId: 508022
+    },
+    {
+      price: '51362.64000000',
+      qty: '0.00026500',
+      commission: '0.00000000',
+      commissionAsset: 'BTC',
+      tradeId: 508023
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  symbol: 'BTCUSDT',
+  orderId: 1931358,
+  orderListId: -1,
+  clientOrderId: 'UPE12F0GM0sKnTfhUosA9I',
+  transactTime: 1633469228116,
+  price: '54182.00000000',
+  origQty: '0.01000000',
+  executedQty: '0.00000000',
+  cummulativeQuoteQty: '0.00000000',
+  status: 'NEW',
+  timeInForce: 'GTC',
+  type: 'LIMIT',
+  side: 'SELL',
+  fills: []
+}

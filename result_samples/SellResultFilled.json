@@ -1,0 +1,31 @@
+{
+  symbol: 'BTCUSDT',
+  orderId: 1939463,
+  orderListId: -1,
+  clientOrderId: 'z5E6xbHfXtTCPQie7cJR6U',
+  transactTime: 1633471145256,
+  price: '46572.00000000',
+  origQty: '0.01000000',
+  executedQty: '0.01000000',
+  cummulativeQuoteQty: '517.44519663',
+  status: 'FILLED',
+  timeInForce: 'GTC',
+  type: 'LIMIT',
+  side: 'SELL',
+  fills: [
+    {
+      price: '51744.52000000',
+      qty: '0.00966300',
+      commission: '0.00000000',
+      commissionAsset: 'USDT',
+      tradeId: 510203
+    },
+    {
+      price: '51744.51000000',
+      qty: '0.00033700',
+      commission: '0.00000000',
+      commissionAsset: 'USDT',
+      tradeId: 510204
+    }
+  ]
+}
